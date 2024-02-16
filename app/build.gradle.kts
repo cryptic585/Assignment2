@@ -61,7 +61,9 @@ dependencies {
     implementation("androidx.compose.material3:material3")
 
 
-    implementation("androidx.health.connect:connect-client:1.1.0-alpha02")
+
+
+    implementation("androidx.health.connect:connect-client:1.1.0-alpha07")
     testImplementation("junit:junit:4.13.2")
     androidTestImplementation("androidx.test.ext:junit:1.1.5")
     androidTestImplementation("androidx.test.espresso:espresso-core:3.5.1")

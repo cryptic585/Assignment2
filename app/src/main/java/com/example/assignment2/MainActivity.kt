@@ -63,42 +63,56 @@ import java.util.concurrent.TimeUnit
 
 
 class MainActivity : ComponentActivity(), ActivityResultRegistryOwner {
+
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+                val PERMISSIONS =
+                    setOf(
+                        HealthPermission.getReadPermission(HeartRateRecord::class),
+                        HealthPermission.getWritePermission(HeartRateRecord::class),
+                        HealthPermission.getReadPermission(StepsRecord::class),
+                        HealthPermission.getWritePermission(StepsRecord::class)
+                    )
+
+                val healthConnectClient = HealthConnectClient.getOrCreate(this)
+                val requestPermissionActivityContract = PermissionController.createRequestPermissionResultContract()
+                val requestPermissions = registerForActivityResult(requestPermissionActivityContract) { granted ->
+                    if (granted.containsAll(PERMISSIONS)) {
+                        // Permissions successfully granted
+                    } else {
+                        // Lack of required permissions
+                        runBlocking {
+                            launch(Dispatchers.IO) {
+                                val granted = healthConnectClient.permissionController.getGrantedPermissions()
+                                if (granted.containsAll(PERMISSIONS)) {
+                                    // Permissions already granted; proceed with inserting or reading data
+                                } else {
+
+                                }
+                            }
+                            }
+                    }
+                }
+        requestPermissions.launch(PERMISSIONS)
+
+
         setContent {
             //MyScreen(context = applicationContext)
             MyScreen(activity = this)
         }
-        //checkHealthConnectStatus(applicationContext)
-        val PERMISSIONS =
-            setOf(
-                HealthPermission.getReadPermission(HeartRateRecord::class),
-                HealthPermission.getWritePermission(HeartRateRecord::class),
-                HealthPermission.getReadPermission(StepsRecord::class),
-                HealthPermission.getWritePermission(StepsRecord::class)
-            )
-        val healthConnectClient = HealthConnectClient.getOrCreate(this)
-        val requestPermissionActivityContract = PermissionController.createRequestPermissionResultContract()
+        runBlocking {
+            launch(Dispatchers.IO) {
+                checkHealthConnectStatus(this@MainActivity)
+            }}
 
-        val requestPermissions = registerForActivityResult(requestPermissionActivityContract) { granted ->
-            if (granted.containsAll(PERMISSIONS)) {
-                // Permissions successfully granted
-            } else {
-                // Lack of required permissions
-            }
-        }
-        suspend fun checkPermissionsAndRun(healthConnectClient: HealthConnectClient) {
-            val granted = healthConnectClient.permissionController.getGrantedPermissions()
-            if (granted.containsAll(PERMISSIONS)) {
-                // Permissions already granted; proceed with inserting or reading data
-            } else {
-                requestPermissions.launch(PERMISSIONS)
-            }
-        }
+
 
 
 
     }
+
 
 }
 
@@ -131,9 +145,12 @@ fun MyScreen(activity: Activity) {
             modifier = Modifier.fillMaxWidth()
         ) {
             Button(onClick = {
+                Log.e("varun galat hai", "varun galat hai")
 
                 val hrCount = hrCountText.text.toLongOrNull()
                 val timeMillis = timeText.text.toLongOrNull()
+                Log.e("varun galat hai", "$hrCount")
+                Log.e("varun galat hai", "$timeMillis")
                 val healthConnectClient = HealthConnectClient.getOrCreate(activity)
                 runBlocking {
                     launch(Dispatchers.IO) {
@@ -141,12 +158,14 @@ fun MyScreen(activity: Activity) {
 
                         if (hrCount != null) {
                             if (timeMillis != null) {
-                                if (hasWriteStepsPermission(activity)) {
-                                    insertSteps(healthConnectClient, hrCount, timeMillis)
-                                } else {
-                                    // Request WRITE_STEPS permission from the user
-                                    requestWriteStepsPermission(activity)
-                                }
+                                insertSteps(healthConnectClient, hrCount, timeMillis)
+//                                if (hasWriteStepsPermission(activity)) {
+//                                    Log.e("varun galat hai", "varun galat hai")
+//                                    insertSteps(healthConnectClient, hrCount, timeMillis)
+//                                } else {
+//                                    // Request WRITE_STEPS permission from the user
+//                                    requestWriteStepsPermission(activity)
+//                                }
                                 // insertSteps(healthConnectClient, hrCount, timeMillis)
                             }
                         }
@@ -162,11 +181,11 @@ fun MyScreen(activity: Activity) {
                 val healthConnectClient = HealthConnectClient.getOrCreate(activity)
                 runBlocking {
                     launch(Dispatchers.IO) {
-                        if (hasReadStepsPermission(activity)) {
+//                        if (hasReadStepsPermission(activity)) {
                             readHeartRate(healthConnectClient)
-                        } else {
-                            requestReadStepsPermission(activity)
-                        }
+//                        } else {
+//                            requestReadStepsPermission(activity)
+//                        }
                         //readHeartRate(healthConnectClient)
                     }
                 }
@@ -210,9 +229,10 @@ fun MyScreen(activity: Activity) {
         }
     }
     LaunchedEffect(key1 = Unit) {
-        checkHealthConnectStatus(activity)
+        //checkHealthConnectStatus(activity)
     }
 }
+
 
 
 private suspend fun checkHealthConnectStatus(activity: Activity) {
@@ -280,6 +300,7 @@ private fun requestReadStepsPermission(activity: Activity) {
 @SuppressLint("SuspiciousIndentation")
 suspend fun insertSteps(healthConnectClient: HealthConnectClient, count: Long, time: Long) {
 
+    Log.e("cccccccccccccc","$count")
     val startTimeMillis: Long = time //12445
     val startTimeInstant: Instant = Instant.ofEpochMilli(startTimeMillis)
     val endTimeMillis: Long = startTimeMillis + (60 * 60 * 1000)
@@ -308,6 +329,7 @@ suspend fun insertSteps(healthConnectClient: HealthConnectClient, count: Long, t
 
 
 private suspend fun readHeartRate(healthConnectClient: HealthConnectClient) {
+    Log.e("lllllllllll", "lll")
     try {
         val today = ZonedDateTime.now()
         val startOfDay = today.truncatedTo(ChronoUnit.DAYS)
